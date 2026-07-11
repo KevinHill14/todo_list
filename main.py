@@ -16,6 +16,13 @@ def save_all_tasks(tasks):
         json.dump(tasks, file, indent=4)
 
 
+def sort_tasks(tasks):
+    # Starred tasks first, but keep relative order within each group
+    starred = [t for t in tasks if t.get("starred")]
+    unstarred = [t for t in tasks if not t.get("starred")]
+    return starred + unstarred
+
+
 def add_task():
     task_name = entry.get()
     if task_name.strip() == "":
@@ -23,15 +30,24 @@ def add_task():
     entry.delete(0, tk.END)
 
     tasks = load_tasks()
-    tasks.append({"name": task_name, "due_date": "", "priority": ""})
+    tasks.append({"name": task_name, "due_date": "", "priority": "", "starred": False})
     save_all_tasks(tasks)
 
-    refresh_task_list()  # rebuild so drag bindings apply to the new row too
+    refresh_task_list()
+    entry.focus_set()
 
 
 def delete_task(index):
     tasks = load_tasks()
     tasks.pop(index)
+    save_all_tasks(tasks)
+    refresh_task_list()
+
+
+def toggle_star(index):
+    tasks = load_tasks()
+    tasks[index]["starred"] = not tasks[index].get("starred")
+    tasks = sort_tasks(tasks)  # re-sort immediately so it jumps to the top
     save_all_tasks(tasks)
     refresh_task_list()
 
@@ -42,12 +58,10 @@ def start_drag(event, index):
 
 
 def on_drag_motion(event, index):
-    # Figure out which row we're currently hovering over based on mouse Y position
     widget_under_mouse = task_list_frame.winfo_containing(event.x_root, event.y_root)
     if widget_under_mouse is None:
         return
 
-    # Walk up to find which row Frame this widget belongs to
     target_row = widget_under_mouse
     while target_row is not None and target_row not in row_frames:
         target_row = target_row.master
@@ -55,7 +69,6 @@ def on_drag_motion(event, index):
     if target_row in row_frames:
         target_index = row_frames.index(target_row)
         if target_index != drag_data["index"]:
-            # Reorder the underlying task list
             tasks = load_tasks()
             moved_task = tasks.pop(drag_data["index"])
             tasks.insert(target_index, moved_task)
@@ -64,21 +77,26 @@ def on_drag_motion(event, index):
             refresh_task_list()
 
 
-def render_task_row(task_name, index):
-    row = tk.Frame(task_list_frame, relief="raised", borderwidth=1)
+def render_task_row(task, index):
+    bg_color = "#fff9c4" if task.get("starred") else "SystemButtonFace"
+    row = tk.Frame(task_list_frame, relief="raised", borderwidth=1, bg=bg_color)
     row.pack(fill="x", pady=2)
     row_frames.append(row)
 
-    handle = tk.Label(row, text="☰", cursor="fleur")  # drag handle icon
+    handle = tk.Label(row, text="☰", cursor="fleur", bg=bg_color)
     handle.pack(side="left", padx=5)
 
-    label = tk.Label(row, text=task_name, anchor="w")
+    label = tk.Label(row, text=task["name"], anchor="w", bg=bg_color)
     label.pack(side="left", fill="x", expand=True)
 
-    trash_button = tk.Button(row, text="🗑", command=lambda: delete_task(index))
+    # Show a filled star if starred, hollow star if not
+    star_text = "★" if task.get("starred") else "☆"
+    star_button = tk.Button(row, text=star_text, command=lambda: toggle_star(index), bg=bg_color)
+    star_button.pack(side="right", padx=2)
+
+    trash_button = tk.Button(row, text="🗑", command=lambda: delete_task(index), bg=bg_color)
     trash_button.pack(side="right")
 
-    # Bind drag events to the handle
     handle.bind("<Button-1>", lambda event: start_drag(event, index))
     handle.bind("<B1-Motion>", lambda event: on_drag_motion(event, index))
 
@@ -90,7 +108,7 @@ def refresh_task_list():
 
     tasks = load_tasks()
     for i, task in enumerate(tasks):
-        render_task_row(task["name"], i)
+        render_task_row(task, i)
 
 
 def clear_tasks():
@@ -101,8 +119,8 @@ def clear_tasks():
 def main():
     global entry, task_list_frame, row_frames, drag_data
 
-    row_frames = []  # keeps track of every row Frame, in order
-    drag_data = {"index": None, "row": None}  # tracks what's currently being dragged
+    row_frames = []
+    drag_data = {"index": None, "row": None}
 
     window = tk.Tk()
     window.title("My Todo List")
