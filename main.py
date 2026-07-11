@@ -2,7 +2,6 @@ import json
 import tkinter as tk
 
 
-# Load tasks from a JSON file
 def load_tasks():
     try:
         with open("tasks.json", "r") as file:
@@ -12,68 +11,98 @@ def load_tasks():
         return []
 
 
-# Save all the tasks to the JSON file
 def save_all_tasks(tasks):
     with open("tasks.json", "w") as file:
         json.dump(tasks, file, indent=4)
 
 
-# Add a new task to the list and update the GUI
 def add_task():
     task_name = entry.get()
     if task_name.strip() == "":
         return
     entry.delete(0, tk.END)
 
-    # Update the JSON
     tasks = load_tasks()
     tasks.append({"name": task_name, "due_date": "", "priority": ""})
     save_all_tasks(tasks)
 
-    render_task_row(task_name, len(tasks) - 1)
+    refresh_task_list()  # rebuild so drag bindings apply to the new row too
 
 
-# Delete a task from the list and update the GUI
-def delete_task(index, row_frame):
+def delete_task(index):
     tasks = load_tasks()
     tasks.pop(index)
     save_all_tasks(tasks)
-    row_frame.destroy()
     refresh_task_list()
 
 
-# Render a single task row in the GUI
+def start_drag(event, index):
+    drag_data["index"] = index
+    drag_data["row"] = row_frames[index]
+
+
+def on_drag_motion(event, index):
+    # Figure out which row we're currently hovering over based on mouse Y position
+    widget_under_mouse = task_list_frame.winfo_containing(event.x_root, event.y_root)
+    if widget_under_mouse is None:
+        return
+
+    # Walk up to find which row Frame this widget belongs to
+    target_row = widget_under_mouse
+    while target_row is not None and target_row not in row_frames:
+        target_row = target_row.master
+
+    if target_row in row_frames:
+        target_index = row_frames.index(target_row)
+        if target_index != drag_data["index"]:
+            # Reorder the underlying task list
+            tasks = load_tasks()
+            moved_task = tasks.pop(drag_data["index"])
+            tasks.insert(target_index, moved_task)
+            save_all_tasks(tasks)
+            drag_data["index"] = target_index
+            refresh_task_list()
+
+
 def render_task_row(task_name, index):
-    row = tk.Frame(task_list_frame)
+    row = tk.Frame(task_list_frame, relief="raised", borderwidth=1)
     row.pack(fill="x", pady=2)
+    row_frames.append(row)
+
+    handle = tk.Label(row, text="☰", cursor="fleur")  # drag handle icon
+    handle.pack(side="left", padx=5)
 
     label = tk.Label(row, text=task_name, anchor="w")
     label.pack(side="left", fill="x", expand=True)
 
-    trash_button = tk.Button(row, text="🗑", command=lambda: delete_task(index, row))
+    trash_button = tk.Button(row, text="🗑", command=lambda: delete_task(index))
     trash_button.pack(side="right")
 
+    # Bind drag events to the handle
+    handle.bind("<Button-1>", lambda event: start_drag(event, index))
+    handle.bind("<B1-Motion>", lambda event: on_drag_motion(event, index))
 
-# Refresh the current task list
+
 def refresh_task_list():
-    # Clear all rows currently shown
     for widget in task_list_frame.winfo_children():
         widget.destroy()
-    # Re-render from the file, so indexes match task order
+    row_frames.clear()
+
     tasks = load_tasks()
     for i, task in enumerate(tasks):
         render_task_row(task["name"], i)
 
 
-# Clear all tasks
 def clear_tasks():
     save_all_tasks([])
     refresh_task_list()
 
 
-# Main logic
 def main():
-    global entry, task_list_frame
+    global entry, task_list_frame, row_frames, drag_data
+
+    row_frames = []  # keeps track of every row Frame, in order
+    drag_data = {"index": None, "row": None}  # tracks what's currently being dragged
 
     window = tk.Tk()
     window.title("My Todo List")
