@@ -11,6 +11,14 @@ def load_tasks():
         return []
 
 
+def load_config():
+    try:
+        with open("config.json", "r") as file:
+            configs = json.load(file)
+        return configs
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"hide_completed": False, "initial_entry": False}
+
 def save_all_tasks(tasks):
     with open("tasks.json", "w") as file:
         json.dump(tasks, file, indent=4)
@@ -63,6 +71,7 @@ def toggle_complete(index):
     tasks = sort_tasks(tasks)
     save_all_tasks(tasks)
     refresh_task_list()
+
 
 def start_drag(event, index):
     drag_data["index"] = index
@@ -124,6 +133,9 @@ def refresh_task_list():
     row_frames.clear()
 
     tasks = load_tasks()
+    if config["hide_completed"]:
+        tasks = [t for t in tasks if not t.get("completed")]
+
     for i, task in enumerate(tasks):
         render_task_row(task, i)
 
@@ -140,8 +152,41 @@ def clear_completed():
     refresh_task_list()
 
 
+def clear_warning():
+    warning_window = tk.Toplevel()
+    warning_window.title("Warning")
+    warning_window.geometry("300x100")
+
+    label = tk.Label(warning_window, text="Are you sure you want to clear all tasks?")
+    label.pack(pady=10)
+
+    button_frame = tk.Frame(warning_window)
+    button_frame.pack()
+
+    yes_button = tk.Button(button_frame, text="Yes", command=lambda: [clear_tasks(), warning_window.destroy()])
+    yes_button.pack(side="left", padx=10)
+
+    no_button = tk.Button(button_frame, text="No", command=warning_window.destroy)
+    no_button.pack(side="right", padx=10)
+
+    # Let Escape close the popup without needing the mouse
+    warning_window.bind("<Escape>", lambda event: [warning_window.destroy(), clear_tasks()])
+    warning_window.focus_set()  # make sure the popup actually receives key presses
+
+
+def save_config(config):
+    with open("config.json", "w") as file:
+        json.dump(config, file, indent=4)
+
+
+def toggle_hide_completed():
+    config["hide_completed"] = not config["hide_completed"]
+    save_config(config)
+    refresh_task_list()
+
 def main():
-    global entry, task_list_frame, row_frames, drag_data
+    global entry, task_list_frame, row_frames, drag_data, config
+    config = load_config()
 
     row_frames = []
     drag_data = {"index": None, "row": None}
@@ -158,12 +203,15 @@ def main():
     add_button = tk.Button(window, text="Add Task", command=add_task)
     add_button.pack()
 
-    clear_button = tk.Button(window, text="Clear Tasks", command=clear_tasks)
+    clear_button = tk.Button(window, text="Clear Tasks", command=clear_warning)
     clear_button.pack(pady=5)
-    entry.bind("<Escape>", lambda event: clear_tasks())
+    entry.bind("<Escape>", lambda event: clear_warning())
 
     clear_completed_button = tk.Button(window, text="Clear Completed", command=clear_completed)
     clear_completed_button.pack(pady=5)
+
+    hide_completed_button = tk.Button(window, text="Hide Completed", command=toggle_hide_completed)
+    hide_completed_button.pack(pady=5)
 
     task_list_frame = tk.Frame(window)
     task_list_frame.pack(fill="both", expand=True, pady=10)
