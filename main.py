@@ -179,6 +179,32 @@ def save_config(config):
         json.dump(config, file, indent=4)
 
 
+def show_help():
+    help_window = tk.Toplevel()
+    help_window.title("Help")
+    help_window.geometry("320x220")
+
+    help_text = (
+        "Keybinds & Controls:\n\n"
+        "Enter — Add typed task\n"
+        "Escape — Open Clear All warning\n"
+        "☰ (drag handle) — Reorder tasks\n"
+        "★ — Prioritize a task\n"
+        "✔ / ⟲ — Mark complete / restore\n"
+        "🗑 — Delete task\n"
+        "Mouse wheel — Scroll task list"
+    )
+
+    label = tk.Label(help_window, text=help_text, justify="left", anchor="w")
+    label.pack(padx=15, pady=15, fill="both", expand=True)
+
+    close_button = tk.Button(help_window, text="Got it", command=help_window.destroy)
+    close_button.pack(pady=5)
+
+    help_window.bind("<Escape>", lambda event: help_window.destroy())
+    help_window.focus_set()
+    
+
 def toggle_hide_completed():
     config["hide_completed"] = not config["hide_completed"]
     save_config(config)
@@ -194,6 +220,11 @@ def main():
     window = tk.Tk()
     window.title("My Todo List")
     window.geometry("400x400")
+
+    if not config["initial_entry"]:
+        show_help()
+        config["initial_entry"] = True
+        save_config(config)
 
     entry = tk.Entry(window, width=30)
     entry.pack(pady=10)
@@ -212,6 +243,9 @@ def main():
 
     hide_completed_button = tk.Button(window, text="Hide Completed", command=toggle_hide_completed)
     hide_completed_button.pack(pady=5)
+
+    help_button = tk.Button(window, text="?", command=show_help)
+    help_button.pack(pady=5)
 
     # --- Scrollable task list setup ---
     canvas = tk.Canvas(window)
