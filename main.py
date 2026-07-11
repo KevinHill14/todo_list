@@ -17,10 +17,15 @@ def save_all_tasks(tasks):
 
 
 def sort_tasks(tasks):
-    # Starred tasks first, but keep relative order within each group
-    starred = [t for t in tasks if t.get("starred")]
-    unstarred = [t for t in tasks if not t.get("starred")]
-    return starred + unstarred
+    # Completed tasks always go last, regardless of starred status
+    active = [t for t in tasks if not t.get("completed")]
+    completed = [t for t in tasks if t.get("completed")]
+
+    # Within active tasks, starred ones go first
+    starred = [t for t in active if t.get("starred")]
+    unstarred = [t for t in active if not t.get("starred")]
+
+    return starred + unstarred + completed
 
 
 def add_task():
@@ -30,7 +35,7 @@ def add_task():
     entry.delete(0, tk.END)
 
     tasks = load_tasks()
-    tasks.append({"name": task_name, "due_date": "", "priority": "", "starred": False})
+    tasks.append({"name": task_name, "due_date": "", "priority": "", "starred": False, "completed": False})
     save_all_tasks(tasks)
 
     refresh_task_list()
@@ -51,6 +56,13 @@ def toggle_star(index):
     save_all_tasks(tasks)
     refresh_task_list()
 
+
+def toggle_complete(index):
+    tasks = load_tasks()
+    tasks[index]["completed"] = not tasks[index].get("completed")
+    tasks = sort_tasks(tasks)
+    save_all_tasks(tasks)
+    refresh_task_list()
 
 def start_drag(event, index):
     drag_data["index"] = index
@@ -78,7 +90,7 @@ def on_drag_motion(event, index):
 
 
 def render_task_row(task, index):
-    bg_color = "#fff9c4" if task.get("starred") else "SystemButtonFace"
+    bg_color = "#787878" if task.get("completed") else "#fff9c4" if task.get("starred") else "SystemButtonFace"
     row = tk.Frame(task_list_frame, relief="raised", borderwidth=1, bg=bg_color)
     row.pack(fill="x", pady=2)
     row_frames.append(row)
@@ -93,6 +105,11 @@ def render_task_row(task, index):
     star_text = "★" if task.get("starred") else "☆"
     star_button = tk.Button(row, text=star_text, command=lambda: toggle_star(index), bg=bg_color)
     star_button.pack(side="right", padx=2)
+
+    # Create the mark completed button
+    mark_completed_text= "✔" if not task.get("completed") else "⟲"
+    mark_completed_button = tk.Button(row, text=mark_completed_text, command=lambda: toggle_complete(index), bg=bg_color)
+    mark_completed_button.pack(side="right", padx=2)
 
     trash_button = tk.Button(row, text="🗑", command=lambda: delete_task(index), bg=bg_color)
     trash_button.pack(side="right")
