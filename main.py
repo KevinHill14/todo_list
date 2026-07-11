@@ -213,8 +213,28 @@ def main():
     hide_completed_button = tk.Button(window, text="Hide Completed", command=toggle_hide_completed)
     hide_completed_button.pack(pady=5)
 
-    task_list_frame = tk.Frame(window)
-    task_list_frame.pack(fill="both", expand=True, pady=10)
+    # --- Scrollable task list setup ---
+    canvas = tk.Canvas(window)
+    scrollbar = tk.Scrollbar(window, orient="vertical", command=canvas.yview)
+    task_list_frame = tk.Frame(canvas)
+
+    task_list_frame.bind(
+        "<Configure>",
+        lambda event: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+
+    canvas_window = canvas.create_window((0, 0), window=task_list_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    def resize_frame(event):
+        canvas.itemconfig(canvas_window, width=event.width)
+
+    canvas.bind("<Configure>", resize_frame)
+
+    canvas.pack(side="left", fill="both", expand=True, pady=10)
+    scrollbar.pack(side="right", fill="y")
+
+    canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1 * (event.delta / 120)), "units"))
 
     refresh_task_list()
 
