@@ -133,6 +133,13 @@ def clear_tasks():
     refresh_task_list()
 
 
+def clear_completed():
+    tasks = load_tasks()
+    tasks = [t for t in tasks if not t.get("completed")]
+    save_all_tasks(tasks)
+    refresh_task_list()
+
+
 def main():
     global entry, task_list_frame, row_frames, drag_data
 
@@ -154,6 +161,9 @@ def main():
     clear_button = tk.Button(window, text="Clear Tasks", command=clear_tasks)
     clear_button.pack(pady=5)
     entry.bind("<Escape>", lambda event: clear_tasks())
+
+    clear_completed_button = tk.Button(window, text="Clear Completed", command=clear_completed)
+    clear_completed_button.pack(pady=5)
 
     task_list_frame = tk.Frame(window)
     task_list_frame.pack(fill="both", expand=True, pady=10)
