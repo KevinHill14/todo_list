@@ -1,39 +1,7 @@
 import json
 import tkinter as tk
-
-
-def load_tasks():
-    try:
-        with open("tasks.json", "r") as file:
-            tasks = json.load(file)
-        return tasks
-    except FileNotFoundError:
-        return []
-
-
-def load_config():
-    try:
-        with open("config.json", "r") as file:
-            configs = json.load(file)
-        return configs
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {"hide_completed": False, "initial_entry": False}
-
-def save_all_tasks(tasks):
-    with open("tasks.json", "w") as file:
-        json.dump(tasks, file, indent=4)
-
-
-def sort_tasks(tasks):
-    # Completed tasks always go last, regardless of starred status
-    active = [t for t in tasks if not t.get("completed")]
-    completed = [t for t in tasks if t.get("completed")]
-
-    # Within active tasks, starred ones go first
-    starred = [t for t in active if t.get("starred")]
-    unstarred = [t for t in active if not t.get("starred")]
-
-    return starred + unstarred + completed
+from tasks import load_tasks, save_all_tasks, sort_tasks
+from config import load_config, save_config
 
 
 def add_task():
@@ -174,10 +142,6 @@ def clear_warning():
     warning_window.focus_set()  # make sure the popup actually receives key presses
 
 
-def save_config(config):
-    with open("config.json", "w") as file:
-        json.dump(config, file, indent=4)
-
 
 def show_help():
     help_window = tk.Toplevel()
@@ -209,6 +173,7 @@ def toggle_hide_completed():
     config["hide_completed"] = not config["hide_completed"]
     save_config(config)
     refresh_task_list()
+
 
 def main():
     global entry, task_list_frame, row_frames, drag_data, config
