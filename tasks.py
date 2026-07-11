@@ -1,5 +1,7 @@
 import json
 
+
+# Load tasks from json file
 def load_tasks():
     try:
         with open("tasks.json", "r") as file:
@@ -9,11 +11,13 @@ def load_tasks():
         return []
     
 
+# Save all tasks to json file
 def save_all_tasks(tasks):
     with open("tasks.json", "w") as file:
         json.dump(tasks, file, indent=4)
 
 
+# Sort tasks in the list
 def sort_tasks(tasks):
     # Completed tasks always go last, regardless of starred status
     active = [t for t in tasks if not t.get("completed")]
