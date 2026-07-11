@@ -110,12 +110,15 @@ def main():
 
     entry = tk.Entry(window, width=30)
     entry.pack(pady=10)
+    entry.bind("<Return>", lambda event: add_task())
+    entry.focus_set()
 
     add_button = tk.Button(window, text="Add Task", command=add_task)
     add_button.pack()
 
     clear_button = tk.Button(window, text="Clear Tasks", command=clear_tasks)
     clear_button.pack(pady=5)
+    entry.bind("<Escape>", lambda event: clear_tasks())
 
     task_list_frame = tk.Frame(window)
     task_list_frame.pack(fill="both", expand=True, pady=10)
