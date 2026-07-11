@@ -1,4 +1,3 @@
-import json
 import tkinter as tk
 from tasks import load_tasks, save_all_tasks, sort_tasks
 from config import load_config, save_config
@@ -183,12 +182,15 @@ def show_help():
 def toggle_hide_completed():
     config["hide_completed"] = not config["hide_completed"]
     save_config(config)
+    if config["hide_completed"]:
+        hide_completed_button.config(bg="#cccccc", relief="sunken")
+    else:
+        hide_completed_button.config(bg="SystemButtonFace", relief="raised")
     refresh_task_list()
-
 
 # Main loop
 def main():
-    global entry, task_list_frame, row_frames, drag_data, config
+    global entry, task_list_frame, row_frames, drag_data, config, hide_completed_button
     config = load_config()
 
     row_frames = []
@@ -196,44 +198,49 @@ def main():
 
     window = tk.Tk()
     window.title("My Todo List")
-    window.geometry("400x400")
+    window.geometry("450x400")
 
-    # Display an initial help pannel upon first ever launch
     if not config["initial_entry"]:
         show_help()
         config["initial_entry"] = True
         save_config(config)
 
-    # Create task entry button
-    entry = tk.Entry(window, width=30)
-    entry.pack(pady=10)
+    # --- Main horizontal split: sidebar | content ---
+    main_frame = tk.Frame(window)
+    main_frame.pack(fill="both", expand=True)
+
+    # --- Sidebar (left column) ---
+    sidebar = tk.Frame(main_frame, width=50)
+    sidebar.pack(side="left", fill="y", padx=(8, 4), pady=8)
+
+    help_button = tk.Button(sidebar, text="?", width=3, command=show_help)
+    help_button.pack(pady=2)
+
+    initial_bg = "#cccccc" if config["hide_completed"] else "SystemButtonFace"
+    initial_relief = "sunken" if config["hide_completed"] else "raised"
+
+    hide_completed_button = tk.Button(sidebar, text="👁", width=3, command=toggle_hide_completed, bg=initial_bg, relief=initial_relief)
+    hide_completed_button.pack(pady=2)
+
+    clear_completed_button = tk.Button(sidebar, text="✔🗑", width=3, command=clear_completed)
+    clear_completed_button.pack(pady=2)
+
+    clear_button = tk.Button(sidebar, text="🗑", width=3, command=clear_warning)
+    clear_button.pack(pady=2)
+
+    # --- Content (right side): entry + scrollable list ---
+    content = tk.Frame(main_frame)
+    content.pack(side="left", fill="both", expand=True, padx=(4, 8), pady=8)
+
+    entry = tk.Entry(content, width=30)
+    entry.pack(fill="x", pady=(0, 8))
     entry.bind("<Return>", lambda event: add_task())
+    entry.bind("<Escape>", lambda event: clear_warning())
     entry.focus_set()
 
-    # Create add task button
-    add_button = tk.Button(window, text="Add Task", command=add_task)
-    add_button.pack()
-
-    # Create clear all button
-    clear_button = tk.Button(window, text="Clear Tasks", command=clear_warning)
-    clear_button.pack(pady=5)
-    entry.bind("<Escape>", lambda event: clear_warning())
-
-    # Create clear complated button
-    clear_completed_button = tk.Button(window, text="Clear Completed", command=clear_completed)
-    clear_completed_button.pack(pady=5)
-
-    # Create hide completed button
-    hide_completed_button = tk.Button(window, text="Hide Completed", command=toggle_hide_completed)
-    hide_completed_button.pack(pady=5)
-
-    # Create help button
-    help_button = tk.Button(window, text="?", command=show_help)
-    help_button.pack(pady=5)
-
-    # Scrollable list setup
-    canvas = tk.Canvas(window)
-    scrollbar = tk.Scrollbar(window, orient="vertical", command=canvas.yview)
+    # --- Scrollable task list setup ---
+    canvas = tk.Canvas(content)
+    scrollbar = tk.Scrollbar(content, orient="vertical", command=canvas.yview)
     task_list_frame = tk.Frame(canvas)
 
     task_list_frame.bind(
@@ -249,7 +256,7 @@ def main():
 
     canvas.bind("<Configure>", resize_frame)
 
-    canvas.pack(side="left", fill="both", expand=True, pady=10)
+    canvas.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
 
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1 * (event.delta / 120)), "units"))
@@ -257,7 +264,7 @@ def main():
     refresh_task_list()
 
     window.mainloop()
-
+    
 
 if __name__ == "__main__":
     main()
