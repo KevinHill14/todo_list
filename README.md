@@ -63,6 +63,8 @@ Requires Python 3.9+ (no external packages needed — everything used is part of
 
 This is a v1, intentionally kept simple and lightweight. Bigger features (due dates, categories, reminders, etc.) may come in a future extended version.
 
+Since To-Do Lite is a single `.exe`, you can right-click it and choose **Pin to taskbar** or **Pin to Start** for one-click access, just like any other Windows app.
+
 ## License
 
 Feel free to use, modify, or learn from this project.
