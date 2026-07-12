@@ -1,8 +1,9 @@
 # To-Do Lite
 
-A simple, lightweight desktop to-do list app for Windows. No accounts, no bloat, no internet connection required — just a fast, clean task list that stays out of your way.
+A simple, lightweight desktop to-do list app for Windows. No accounts, no bloat, no internet connection required — just a fast, clean task list that stays out of your way. Built with Python and Tkinter. Runs at around 17MB of RAM.
 
-Built with Python and Tkinter. Runs at around 17MB of RAM.
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+![Tkinter](https://img.shields.io/badge/GUI-Tkinter-green)
 
 ## Features
 
