@@ -2,6 +2,28 @@ import tkinter as tk
 from tasks import load_tasks, save_all_tasks, sort_tasks
 from config import load_config, save_config
 
+THEMES = {
+    "light": {
+        "bg": "SystemButtonFace",
+        "fg": "black",
+        "entry_bg": "white",
+        "row_bg": "SystemButtonFace",
+        "row_starred": "#fff9c4",
+        "row_completed": "#787878",
+    },
+    "dark": {
+        "bg": "#2b2b2b",
+        "fg": "white",
+        "entry_bg": "#3c3c3c",
+        "row_bg": "#3c3c3c",
+        "row_starred": "#5c5731",
+        "row_completed": "#1e1e1e",
+    },
+}
+
+
+def current_theme():
+    return THEMES["dark"] if config.get("dark_mode") else THEMES["light"]
 
 # Refresh all displayed tasks
 def refresh_task_list():
@@ -10,6 +32,8 @@ def refresh_task_list():
     row_frames.clear()
 
     tasks = load_tasks()
+    tasks = sort_tasks(tasks)
+
     if config["hide_completed"]:
         tasks = [t for t in tasks if not t.get("completed")]
 
@@ -86,33 +110,53 @@ def on_drag_motion(event, index):
 
 
 def render_task_row(task, index):
-    bg_color = "#787878" if task.get("completed") else "#fff9c4" if task.get("starred") else "SystemButtonFace"
+    theme = current_theme()
+    bg_color = theme["row_completed"] if task.get("completed") else theme["row_starred"] if task.get("starred") else theme["row_bg"]
+    fg_color = theme["fg"]
+
     row = tk.Frame(task_list_frame, relief="raised", borderwidth=1, bg=bg_color)
     row.pack(fill="x", pady=2)
     row_frames.append(row)
 
-    handle = tk.Label(row, text="☰", cursor="fleur", bg=bg_color)
+    handle = tk.Label(row, text="☰", cursor="fleur", bg=bg_color, fg=fg_color)
     handle.pack(side="left", padx=5)
 
-    label = tk.Label(row, text=task["name"], anchor="w", bg=bg_color)
+    label = tk.Label(row, text=task["name"], anchor="w", bg=bg_color, fg=fg_color)
     label.pack(side="left", fill="x", expand=True)
 
-    # Show a filled star if starred, hollow star if not
     star_text = "★" if task.get("starred") else "☆"
-    star_button = tk.Button(row, text=star_text, command=lambda: toggle_star(index), bg=bg_color)
+    star_button = tk.Button(row, text=star_text, command=lambda: toggle_star(index), bg=bg_color, fg=fg_color)
     star_button.pack(side="right", padx=2)
 
-    # Create the mark completed button
-    mark_completed_text= "✔" if not task.get("completed") else "⟲"
-    mark_completed_button = tk.Button(row, text=mark_completed_text, command=lambda: toggle_complete(index), bg=bg_color)
+    mark_completed_text = "✔" if not task.get("completed") else "⟲"
+    mark_completed_button = tk.Button(row, text=mark_completed_text, command=lambda: toggle_complete(index), bg=bg_color, fg=fg_color)
     mark_completed_button.pack(side="right", padx=2)
 
-    # Create the delete button
-    trash_button = tk.Button(row, text="🗑", command=lambda: delete_task(index), bg=bg_color)
+    trash_button = tk.Button(row, text="🗑", command=lambda: delete_task(index), bg=bg_color, fg=fg_color)
     trash_button.pack(side="right")
 
     handle.bind("<Button-1>", lambda event: start_drag(event, index))
     handle.bind("<B1-Motion>", lambda event: on_drag_motion(event, index))
+
+def apply_theme():
+    theme = current_theme()
+    window.config(bg=theme["bg"])
+    main_frame.config(bg=theme["bg"])
+    sidebar.config(bg=theme["bg"])
+    content.config(bg=theme["bg"])
+    entry.config(bg=theme["entry_bg"], fg=theme["fg"], insertbackground=theme["fg"])
+    canvas.config(bg=theme["bg"])
+    task_list_frame.config(bg=theme["bg"])
+
+    for btn in (help_button, hide_completed_button, clear_completed_button, clear_button, dark_mode_button):
+        btn.config(bg=theme["bg"], fg=theme["fg"])
+
+
+def toggle_dark_mode():
+    config["dark_mode"] = not config.get("dark_mode")
+    save_config(config)
+    apply_theme()
+    refresh_task_list()
 
 
 # Clear all tasks displayed and on the json file
@@ -190,7 +234,7 @@ def toggle_hide_completed():
 
 # Main loop
 def main():
-    global entry, task_list_frame, row_frames, drag_data, config, hide_completed_button
+    global entry, task_list_frame, row_frames, drag_data, config, hide_completed_button, dark_mode_button, help_button, clear_completed_button, clear_button, main_frame, sidebar, content, canvas, window
     config = load_config()
 
     row_frames = []
@@ -228,6 +272,9 @@ def main():
     clear_button = tk.Button(sidebar, text="🗑", width=3, command=clear_warning)
     clear_button.pack(pady=2)
 
+    dark_mode_button = tk.Button(sidebar, text="🌙", width=3, command=toggle_dark_mode)
+    dark_mode_button.pack(pady=2)
+
     # --- Content (right side): entry + scrollable list ---
     content = tk.Frame(main_frame)
     content.pack(side="left", fill="both", expand=True, padx=(4, 8), pady=8)
@@ -261,6 +308,7 @@ def main():
 
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1 * (event.delta / 120)), "units"))
 
+    apply_theme()
     refresh_task_list()
 
     window.mainloop()
