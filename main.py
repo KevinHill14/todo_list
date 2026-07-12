@@ -1,6 +1,8 @@
 import tkinter as tk
+from tkinter import ttk
 from tasks import load_tasks, save_all_tasks, sort_tasks
 from config import load_config, save_config
+import ctypes
 
 THEMES = {
     "light": {
@@ -22,6 +24,18 @@ THEMES = {
 }
 
 
+
+def set_titlebar_theme(window, dark):
+    try:
+        hwnd = ctypes.windll.user32.GetParent(window.winfo_id())
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        value = ctypes.c_int(1 if dark else 0)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(value), ctypes.sizeof(value)
+        )
+    except Exception:
+        pass  # fails silently on unsupported Windows versions
+
 def current_theme():
     return THEMES["dark"] if config.get("dark_mode") else THEMES["light"]
 
@@ -39,6 +53,10 @@ def refresh_task_list():
 
     for i, task in enumerate(tasks):
         render_task_row(task, i)
+
+    task_list_frame.update_idletasks()
+    canvas.configure(scrollregion=canvas.bbox("all"))
+    canvas.update()
 
 
 # Add a task to the list
@@ -138,8 +156,10 @@ def render_task_row(task, index):
     handle.bind("<Button-1>", lambda event: start_drag(event, index))
     handle.bind("<B1-Motion>", lambda event: on_drag_motion(event, index))
 
+
 def apply_theme():
     theme = current_theme()
+    set_titlebar_theme(window, config.get("dark_mode", False))
     window.config(bg=theme["bg"])
     main_frame.config(bg=theme["bg"])
     sidebar.config(bg=theme["bg"])
@@ -147,6 +167,14 @@ def apply_theme():
     entry.config(bg=theme["entry_bg"], fg=theme["fg"], insertbackground=theme["fg"])
     canvas.config(bg=theme["bg"])
     task_list_frame.config(bg=theme["bg"])
+
+    style = ttk.Style()
+    style.theme_use("default")  # ttk needs a base theme before you can override colors
+    style.configure("Vertical.TScrollbar",
+                     background=theme["bg"],
+                     troughcolor=theme["bg"],
+                     bordercolor=theme["bg"],
+                     arrowcolor=theme["fg"])
 
     for btn in (help_button, hide_completed_button, clear_completed_button, clear_button, dark_mode_button):
         btn.config(bg=theme["bg"], fg=theme["fg"])
@@ -226,10 +254,13 @@ def show_help():
 def toggle_hide_completed():
     config["hide_completed"] = not config["hide_completed"]
     save_config(config)
+
+    theme = current_theme()
     if config["hide_completed"]:
-        hide_completed_button.config(bg="#cccccc", relief="sunken")
+        hide_completed_button.config(bg=theme["row_completed"], fg=theme["fg"], relief="sunken")
     else:
-        hide_completed_button.config(bg="SystemButtonFace", relief="raised")
+        hide_completed_button.config(bg=theme["bg"], fg=theme["fg"], relief="raised")
+
     refresh_task_list()
 
 # Main loop
@@ -287,7 +318,7 @@ def main():
 
     # --- Scrollable task list setup ---
     canvas = tk.Canvas(content)
-    scrollbar = tk.Scrollbar(content, orient="vertical", command=canvas.yview)
+    scrollbar = ttk.Scrollbar(content, orient="vertical", command=canvas.yview)
     task_list_frame = tk.Frame(canvas)
 
     task_list_frame.bind(
@@ -308,6 +339,7 @@ def main():
 
     canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1 * (event.delta / 120)), "units"))
 
+    window.update_idletasks()
     apply_theme()
     refresh_task_list()
 
