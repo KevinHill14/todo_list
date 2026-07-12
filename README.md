@@ -2,7 +2,7 @@
 
 A simple, lightweight desktop to-do list app for Windows. No accounts, no bloat, no internet connection required — just a fast, clean task list that stays out of your way.
 
-Built with Python and Tkinter. Runs at around 36MB of RAM.
+Built with Python and Tkinter. Runs at around 17MB of RAM.
 
 ## Features
 
