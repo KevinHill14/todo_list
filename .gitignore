@@ -1,2 +1,8 @@
 tasks.json
 config.json
+todo_tracker.txt
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec

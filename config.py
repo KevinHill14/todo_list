@@ -7,7 +7,7 @@ def load_config():
             configs = json.load(file)
         return configs
     except (FileNotFoundError, json.JSONDecodeError):
-        return {"hide_completed": False, "initial_entry": False}
+        return {"hide_completed": False, "initial_entry": False, "dark_mode": True, "warn_on_clear": True}
     
 
 # Update the config file
